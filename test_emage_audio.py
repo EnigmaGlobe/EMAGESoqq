@@ -164,3 +164,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+#python test_emage_audio.py --visualization --audio_folder ./examples/audio --save_folder ./examples/motion
