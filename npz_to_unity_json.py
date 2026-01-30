@@ -24,6 +24,22 @@ JOINT_MASK_LOWER = [
 HANDS_RANGE = list(range(25, 55))
 JAW_INDEX = 22
 
+def peek(name, arr, n=2, decimals=4):
+    """Print shape + first n rows (truncated) for quick sanity checks."""
+    if arr is None:
+        print(f"[{name}] None")
+        return
+    a = np.asarray(arr)
+    print(f"[{name}] shape={a.shape} dtype={a.dtype}")
+    if a.ndim == 1:
+        show = a[: min(len(a), n*10)]
+        print(f"  head: {np.round(show, decimals)}")
+    elif a.ndim >= 2:
+        rows = min(a.shape[0], n)
+        cols = min(a.shape[1], 12)
+        print(f"  head[{rows}x{cols}]:\n{np.round(a[:rows, :cols], decimals)}")
+
+
 def idx_from_mask(mask):
     return [i for i, v in enumerate(mask) if v]
 
@@ -43,7 +59,12 @@ def main():
     out = sys.argv[2]
 
     d = np.load(inp, allow_pickle=True)
+    print("[npz] keys:", d.files)
 
+    if "poses" in d: peek("poses", d["poses"])
+    if "trans" in d: peek("trans", d["trans"])
+    if "expressions" in d: peek("expressions", d["expressions"])
+    if "mocap_frame_rate" in d: print("[npz] mocap_frame_rate:", d["mocap_frame_rate"])
     poses = d["poses"].astype(np.float32)   # (F,165) axis-angle
     trans = d["trans"].astype(np.float32)   # (F,3)
 
@@ -59,6 +80,11 @@ def main():
     lower = slice_joints_axis_angle(poses, lower_idx)
     hands = slice_joints_axis_angle(poses, hands_idx)
     jaw = slice_joints_axis_angle(poses, jaw_idx)  # (F,3)
+    
+    print("[idx] upper:", len(upper_idx), "first:", upper_idx[:10])
+    print("[idx] lower:", len(lower_idx), "first:", lower_idx[:10])
+    print("[idx] hands:", len(hands_idx), "range:", hands_idx[0], "..", hands_idx[-1])
+    print("[idx] jaw:", jaw_idx)
 
     # (Optional) sanity checks
     assert poses.shape[1] == 165, f"Expected pose_dims=165, got {poses.shape[1]}"
@@ -109,4 +135,11 @@ def main():
 if __name__ == "__main__":
     main()
 
+# installation
+#python -m venv .venv
+#.\.venv\Scripts\Activate.ps1
+#python -m pip install --upgrade pip
+#python -m pip install numpy
+
+#run example
 #python npz_to_unity_json.py .\examples\motion\2_scott_0_103_103_28s_output.npz .\examples\motion\emage_unity.json
