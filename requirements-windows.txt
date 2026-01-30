@@ -1,0 +1,19 @@
+# Minimal, CPU-friendly requirements used for local testing on Windows
+# Install torch (CPU) using the official PyTorch instructions for Windows.
+# Example (PowerShell):
+#   pip install --index-url https://download.pytorch.org/whl/cpu torch --upgrade
+
+numpy>=1.24
+scipy>=1.10
+librosa>=0.9.2
+soundfile>=0.12.1
+# CPU build of PyTorch; prefer installing from PyTorch site for correct wheel
+torch>=2.2
+
+# FastAPI + server runner
+fastapi>=0.95
+uvicorn[standard]>=0.22
+
+# Hugging Face (model download / from_pretrained)
+transformers>=4.30
+huggingface-hub>=0.15
