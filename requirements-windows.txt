@@ -13,6 +13,7 @@ torch>=2.2
 # FastAPI + server runner
 fastapi>=0.95
 uvicorn[standard]>=0.22
+python-multipart>=0.0.22
 
 # Hugging Face (model download / from_pretrained)
 transformers>=4.30
