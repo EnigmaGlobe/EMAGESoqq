@@ -12,7 +12,7 @@ import requests
 
 
 DEFAULT_AUDIO = r"C:\soqqle\EMAGESoqq\examples\audio\Rachel.wav"
-DEFAULT_BASE_URL = "http://127.0.0.1:8000"
+DEFAULT_BASE_URL = "http://127.0.0.1:8001"
 
 
 def audio_path_to_wav_bytes(path: str) -> bytes:

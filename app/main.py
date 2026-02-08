@@ -1,18 +1,28 @@
 # app/main.py
-from fastapi import FastAPI
-from app.logging_config import setup_logging
+import time
+import logging
+from fastapi import FastAPI, Request
+
 from app.routes import router
-from app.deps import load_bundle
+from app.logging_config import setup_logging
 
-def create_app() -> FastAPI:
-    setup_logging()
-    app = FastAPI()
-    app.include_router(router)
+setup_logging()
+log = logging.getLogger("http")
 
-    @app.on_event("startup")
-    def _startup():
-        load_bundle()
+app = FastAPI()
+app.include_router(router)
 
-    return app
+@app.middleware("http")
+async def timing_middleware(request: Request, call_next):
+    t0 = time.perf_counter()
+    response = await call_next(request)
+    dt_ms = (time.perf_counter() - t0) * 1000.0
 
-app = create_app()
+    # similar vibe to morgan/express
+    log.info('%s %s -> %d (%.1fms)',
+             request.method,
+             request.url.path + (f"?{request.url.query}" if request.url.query else ""),
+             response.status_code,
+             dt_ms)
+
+    return response

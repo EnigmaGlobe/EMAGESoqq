@@ -7,7 +7,7 @@ import struct
 import numpy as np
 import librosa
 
-from fastapi import APIRouter, File, UploadFile, HTTPException, Body
+from fastapi import APIRouter, File, UploadFile, HTTPException, Body, Query
 from fastapi.responses import JSONResponse, Response
 
 from app.config import MAX_UPLOAD_BYTES, MAX_WAV_SECONDS
@@ -27,7 +27,34 @@ router = APIRouter()
 #
 # Unity can decode with BitConverter + Buffer.BlockCopy into float[].
 # -----------------------------------------------------------------------------
+@router.post("/infer_pcm16_raw")
+async def infer_pcm16_raw(
+    pcm16_bytes: bytes = Body(..., media_type="application/octet-stream"),
+    sr: int = Query(24000),
+    channels: int = Query(1),
+):
+    # Size guard (bytes)
+    if len(pcm16_bytes) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="Uploaded file is too large")
 
+    # Decode PCM16 LE -> float32 [-1, 1]
+    x = np.frombuffer(pcm16_bytes, dtype="<i2")  # little-endian int16
+    if channels == 2:
+        if x.size % 2 != 0:
+            raise HTTPException(status_code=400, detail="Invalid stereo PCM length")
+        x = x.reshape(-1, 2).mean(axis=1)
+    elif channels != 1:
+        raise HTTPException(status_code=400, detail="channels must be 1 or 2")
+
+    y = (x.astype(np.float32) / 32768.0).clip(-1.0, 1.0)
+
+    duration_sec = float(len(y)) / float(sr) if len(y) else 0.0
+    if duration_sec > MAX_WAV_SECONDS:
+        raise HTTPException(status_code=413, detail="Audio too long")
+
+    fps, motion = infer_from_audio_np(y, sr)
+    blob = _pack_motion_f32(fps, np.asarray(motion, dtype=np.float32, order="C"))
+    return Response(content=blob, media_type="application/octet-stream")
 
 def _decode_wav_bytes(wav_bytes: bytes) -> tuple[np.ndarray, int, float]:
     """WAV bytes -> (mono float32 waveform y, sample rate sr, duration_sec)."""
