@@ -1,5 +1,6 @@
 # app/routes.py
 import io
+from io import BytesIO
 import time
 import logging
 import struct
@@ -53,7 +54,7 @@ async def infer_pcm16_raw(
         raise HTTPException(status_code=413, detail="Audio too long")
 
     fps, motion = infer_from_audio_np(y, sr)
-    blob = _pack_motion_f32(fps, np.asarray(motion, dtype=np.float32, order="C"))
+    blob = _pack_motion_npz(fps, np.asarray(motion, dtype=np.float32, order="C"))
     return Response(content=blob, media_type="application/octet-stream")
 
 def _decode_wav_bytes(wav_bytes: bytes) -> tuple[np.ndarray, int, float]:
@@ -118,6 +119,22 @@ def _pack_motion_f32(fps: int, motion_f32: np.ndarray) -> bytes:
     header = struct.pack("<III", int(fps), frames, dims)
     payload = motion_f32.astype(np.float32, copy=False).tobytes(order="C")
     return header + payload
+
+
+def _pack_motion_npz(fps: int, motion_f32: np.ndarray) -> bytes:
+    """Pack to an in-memory .npz containing the motion output."""
+    if motion_f32.ndim != 2:
+        raise HTTPException(status_code=500, detail=f"Unexpected motion shape: {motion_f32.shape}")
+
+    buffer = BytesIO()
+    np.savez(
+        buffer,
+        fps=np.int32(fps),
+        frames=np.int32(motion_f32.shape[0]),
+        dims=np.int32(motion_f32.shape[1]),
+        motion_axis_angle_flat=motion_f32.astype(np.float32, copy=False),
+    )
+    return buffer.getvalue()
 
 
 # -----------------------------------------------------------------------------
