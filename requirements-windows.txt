@@ -11,10 +11,13 @@ soundfile>=0.12.1
 torch>=2.2
 
 # FastAPI + server runner
-fastapi>=0.95
+fastapi==0.110.3
 uvicorn[standard]>=0.22
-python-multipart>=0.0.22
+python-multipart==0.0.20
 
 # Hugging Face (model download / from_pretrained)
-transformers>=4.30
-huggingface-hub>=0.15
+# Custom EMAGE model classes are written against the older Transformers API.
+# Newer 5.x releases break from_pretrained() for this model.
+transformers==4.30.2
+huggingface-hub<1.0
+omegaconf==2.2.3
