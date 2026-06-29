@@ -12,9 +12,27 @@ from fastapi import APIRouter, File, UploadFile, HTTPException, Body, Query
 from fastapi.responses import JSONResponse, Response
 
 from app.config import MAX_UPLOAD_BYTES, MAX_WAV_SECONDS
+from app.deps import load_bundle
 from app.inference import infer_from_audio_np
 
 router = APIRouter()
+
+
+@router.get("/health")
+async def health() -> dict[str, str]:
+    """Liveness probe: process is up and serving HTTP."""
+    return {"status": "ok"}
+
+
+@router.get("/ready")
+async def ready() -> JSONResponse:
+    """Readiness probe: model dependencies can be loaded and served."""
+    try:
+        load_bundle()
+        return JSONResponse({"status": "ready"}, status_code=200)
+    except Exception:
+        logging.exception("readiness check failed")
+        return JSONResponse({"status": "not_ready"}, status_code=503)
 
 # -----------------------------------------------------------------------------
 # Binary wire format (little-endian)

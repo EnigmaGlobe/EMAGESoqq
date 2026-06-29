@@ -3,6 +3,7 @@ import time
 import logging
 from fastapi import FastAPI, Request
 
+from app.deps import load_bundle
 from app.routes import router
 from app.logging_config import setup_logging
 
@@ -11,6 +12,15 @@ log = logging.getLogger("http")
 
 app = FastAPI()
 app.include_router(router)
+
+
+@app.on_event("startup")
+async def preload_model_bundle() -> None:
+    # Warm model load once during startup; /ready will report 503 if this fails.
+    try:
+        load_bundle()
+    except Exception:
+        log.exception("Model preload failed at startup")
 
 @app.middleware("http")
 async def timing_middleware(request: Request, call_next):
